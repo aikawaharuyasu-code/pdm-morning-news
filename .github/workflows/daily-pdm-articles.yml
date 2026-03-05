@@ -1,0 +1,23 @@
+name: PdM朝刊 - 毎朝7時配信
+
+on:
+  schedule:
+    # 日本時間 朝7:00 = UTC 22:00 (前日)
+    - cron: '0 22 * * *'
+  workflow_dispatch: # 手動実行も可能
+
+jobs:
+  post-articles:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Fetch articles and post to Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: python scripts/fetch_and_post.py
