@@ -123,6 +123,32 @@ RSS_FEEDS = [
         "url": "https://b.hatena.ne.jp/search/tag?q=AI+%E6%A5%AD%E5%8B%99&mode=rss",
         "category": "AI x PdM",
     },
+    # --- はてブ人気エントリー（話題の記事） ---
+    {
+        "name": "はてブ - テクノロジー",
+        "url": "https://b.hatena.ne.jp/hotentry/it.rss",
+        "category": "PdM全般",
+    },
+    {
+        "name": "はてブ - マーケティング",
+        "url": "https://b.hatena.ne.jp/search/tag?q=%E3%83%9E%E3%83%BC%E3%82%B1%E3%83%86%E3%82%A3%E3%83%B3%E3%82%B0&mode=rss&sort=popular",
+        "category": "PdM全般",
+    },
+    {
+        "name": "はてブ - プロダクトマネジメント",
+        "url": "https://b.hatena.ne.jp/search/tag?q=%E3%83%97%E3%83%AD%E3%83%80%E3%82%AF%E3%83%88%E3%83%9E%E3%83%8D%E3%82%B8%E3%83%A1%E3%83%B3%E3%83%88&mode=rss&sort=popular",
+        "category": "PdM全般",
+    },
+    {
+        "name": "はてブ - ChatGPT",
+        "url": "https://b.hatena.ne.jp/search/tag?q=ChatGPT&mode=rss&sort=popular",
+        "category": "AI x PdM",
+    },
+    {
+        "name": "はてブ - Claude",
+        "url": "https://b.hatena.ne.jp/search/tag?q=Claude&mode=rss&sort=popular",
+        "category": "AI x PdM",
+    },
 ]
 
 # 重複排除用
