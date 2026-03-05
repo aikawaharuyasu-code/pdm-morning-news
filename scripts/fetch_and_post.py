@@ -39,7 +39,22 @@ RSS_FEEDS = [
     },
     {
         "name": "MarkeZine",
-        "url": "https://markezine.jp/rss/new/20/index.xml",
+        "url": "https://markezine.jp/article/feed.xml",
+        "category": "PdM全般",
+    },
+    {
+        "name": "Web担当者Forum",
+        "url": "https://webtan.impress.co.jp/feed",
+        "category": "PdM全般",
+    },
+    {
+        "name": "SELECK",
+        "url": "https://seleck.cc/feed",
+        "category": "PdM全般",
+    },
+    {
+        "name": "LogMi Tech",
+        "url": "https://logmi.jp/tech/feed",
         "category": "PdM全般",
     },
     {
