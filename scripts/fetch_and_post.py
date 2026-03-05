@@ -17,7 +17,7 @@ NG_SOURCES = [s.lower() for s in CONFIG.get("ng_sources", [])]
 BOOST_SOURCES = [s.lower() for s in CONFIG.get("boost_sources", [])]
 
 # 記事の合計上限
-MAX_ARTICLES = 5
+MAX_ARTICLES = 10
 
 # PdM / プロダクトマネジメント関連のRSSフィード
 RSS_FEEDS = [
@@ -262,12 +262,12 @@ def main():
     pdm_articles = dedupe_sources(pdm_articles)
     ai_articles = dedupe_sources(ai_articles)
 
-    # 合計5件に収める（PdM 3件 + AI 2件を目安に）
-    pdm_pick = pdm_articles[:3]
-    ai_pick = ai_articles[:2]
-    if len(pdm_pick) < 3:
+    # 合計10件に収める（PdM 5件 + AI 5件を目安に）
+    pdm_pick = pdm_articles[:5]
+    ai_pick = ai_articles[:5]
+    if len(pdm_pick) < 5:
         ai_pick = ai_articles[: MAX_ARTICLES - len(pdm_pick)]
-    if len(ai_pick) < 2:
+    if len(ai_pick) < 5:
         pdm_pick = pdm_articles[: MAX_ARTICLES - len(ai_pick)]
 
     lines = [f":newspaper: *PdM朝刊 - {today}*\n"]
