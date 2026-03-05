@@ -6,8 +6,12 @@ from datetime import datetime, timedelta
 
 SLACK_WEBHOOK_URL = os.environ["SLACK_WEBHOOK_URL"]
 
+# 記事の合計上限
+MAX_ARTICLES = 5
+
 # PdM / プロダクトマネジメント関連のRSSフィード
 RSS_FEEDS = [
+    # --- PdM全般 ---
     {
         "name": "ProductZine",
         "url": "https://productzine.jp/feed/rss2",
@@ -24,6 +28,32 @@ RSS_FEEDS = [
         "category": "PdM全般",
     },
     {
+        "name": "Qiita - プロダクトマネジメント",
+        "url": "https://qiita.com/tags/productmanagement/feed",
+        "category": "PdM全般",
+    },
+    {
+        "name": "Zenn - プロダクトマネジメント",
+        "url": "https://zenn.dev/topics/productmanagement/feed",
+        "category": "PdM全般",
+    },
+    {
+        "name": "MarkeZine",
+        "url": "https://markezine.jp/rss/new/20/index.xml",
+        "category": "PdM全般",
+    },
+    {
+        "name": "ferret",
+        "url": "https://ferret-plus.com/feed",
+        "category": "PdM全般",
+    },
+    {
+        "name": "UX MILK",
+        "url": "https://uxmilk.jp/feed",
+        "category": "PdM全般",
+    },
+    # --- AI x PdM ---
+    {
         "name": "note #AI活用",
         "url": "https://note.com/hashtag/AI%E6%B4%BB%E7%94%A8?f=new&rss",
         "category": "AI x PdM",
@@ -34,13 +64,18 @@ RSS_FEEDS = [
         "category": "AI x PdM",
     },
     {
-        "name": "Zenn - プロダクトマネジメント",
-        "url": "https://zenn.dev/topics/productmanagement/feed",
-        "category": "PdM全般",
-    },
-    {
         "name": "Zenn - AI",
         "url": "https://zenn.dev/topics/ai/feed",
+        "category": "AI x PdM",
+    },
+    {
+        "name": "Qiita - ChatGPT",
+        "url": "https://qiita.com/tags/chatgpt/feed",
+        "category": "AI x PdM",
+    },
+    {
+        "name": "note #ClaudeCode",
+        "url": "https://note.com/hashtag/ClaudeCode?f=new&rss",
         "category": "AI x PdM",
     },
 ]
@@ -111,7 +146,7 @@ def fetch_rss(feed):
     except Exception as e:
         print(f"[WARN] {feed['name']} の取得に失敗: {e}")
 
-    return articles[:5]  # 各フィードから最大5件
+    return articles[:3]  # 各フィードから最大3件
 
 
 def post_to_slack(message):
@@ -139,21 +174,45 @@ def main():
         post_to_slack(f":newspaper: *PdM朝刊 - {today}*\n\n本日の新着記事はありませんでした。")
         return
 
-    # カテゴリ別に分類
+    # カテゴリ別に分類し、ソースが偏らないようシャッフル
+    import random
+    random.shuffle(all_articles)
+
     pdm_articles = [a for a in all_articles if a["category"] == "PdM全般"]
     ai_articles = [a for a in all_articles if a["category"] == "AI x PdM"]
 
+    # ソースの偏りを防ぐ: 同一ソースから最大1件
+    def dedupe_sources(articles):
+        seen_sources = set()
+        result = []
+        for a in articles:
+            if a["source"] not in seen_sources:
+                seen_sources.add(a["source"])
+                result.append(a)
+        return result
+
+    pdm_articles = dedupe_sources(pdm_articles)
+    ai_articles = dedupe_sources(ai_articles)
+
+    # 合計5件に収める（PdM 3件 + AI 2件を目安に）
+    pdm_pick = pdm_articles[:3]
+    ai_pick = ai_articles[:2]
+    if len(pdm_pick) < 3:
+        ai_pick = ai_articles[: MAX_ARTICLES - len(pdm_pick)]
+    if len(ai_pick) < 2:
+        pdm_pick = pdm_articles[: MAX_ARTICLES - len(ai_pick)]
+
     lines = [f":newspaper: *PdM朝刊 - {today}*\n"]
 
-    if pdm_articles:
+    if pdm_pick:
         lines.append("*-- PdM / プロダクトマネジメント --*")
-        for a in pdm_articles[:5]:
+        for a in pdm_pick:
             lines.append(f"  <{a['link']}|{a['title']}>\n  _{a['source']}_")
         lines.append("")
 
-    if ai_articles:
+    if ai_pick:
         lines.append("*-- AI x PdM / AI活用 --*")
-        for a in ai_articles[:5]:
+        for a in ai_pick:
             lines.append(f"  <{a['link']}|{a['title']}>\n  _{a['source']}_")
         lines.append("")
 
