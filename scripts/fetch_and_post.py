@@ -52,10 +52,10 @@ RSS_FEEDS = [
         "url": "https://uxmilk.jp/feed",
         "category": "PdM全般",
     },
-    # --- AI x PdM ---
+    # --- AI x PdM / AI業務活用 ---
     {
-        "name": "note #AI活用",
-        "url": "https://note.com/hashtag/AI%E6%B4%BB%E7%94%A8?f=new&rss",
+        "name": "note #ClaudeCode",
+        "url": "https://note.com/hashtag/ClaudeCode?f=new&rss",
         "category": "AI x PdM",
     },
     {
@@ -64,18 +64,38 @@ RSS_FEEDS = [
         "category": "AI x PdM",
     },
     {
-        "name": "Zenn - AI",
-        "url": "https://zenn.dev/topics/ai/feed",
+        "name": "note #AI業務効率化",
+        "url": "https://note.com/hashtag/AI%E6%A5%AD%E5%8B%99%E5%8A%B9%E7%8E%87%E5%8C%96?f=new&rss",
         "category": "AI x PdM",
     },
     {
-        "name": "Qiita - ChatGPT",
-        "url": "https://qiita.com/tags/chatgpt/feed",
+        "name": "note #AI自動化",
+        "url": "https://note.com/hashtag/AI%E8%87%AA%E5%8B%95%E5%8C%96?f=new&rss",
         "category": "AI x PdM",
     },
     {
-        "name": "note #ClaudeCode",
-        "url": "https://note.com/hashtag/ClaudeCode?f=new&rss",
+        "name": "note #生成AI活用",
+        "url": "https://note.com/hashtag/%E7%94%9F%E6%88%90AI%E6%B4%BB%E7%94%A8?f=new&rss",
+        "category": "AI x PdM",
+    },
+    {
+        "name": "Zenn - Claude",
+        "url": "https://zenn.dev/topics/claude/feed",
+        "category": "AI x PdM",
+    },
+    {
+        "name": "Zenn - AIエージェント",
+        "url": "https://zenn.dev/topics/agent/feed",
+        "category": "AI x PdM",
+    },
+    {
+        "name": "Qiita - Claude",
+        "url": "https://qiita.com/tags/claude/feed",
+        "category": "AI x PdM",
+    },
+    {
+        "name": "Hatena - AI業務活用",
+        "url": "https://b.hatena.ne.jp/search/tag?q=AI+%E6%A5%AD%E5%8B%99&mode=rss",
         "category": "AI x PdM",
     },
 ]
