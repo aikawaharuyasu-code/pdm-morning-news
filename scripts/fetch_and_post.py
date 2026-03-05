@@ -6,6 +6,16 @@ from datetime import datetime, timedelta
 
 SLACK_WEBHOOK_URL = os.environ["SLACK_WEBHOOK_URL"]
 
+# 設定ファイル読み込み
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "config.json")
+with open(CONFIG_PATH, encoding="utf-8") as f:
+    CONFIG = json.load(f)
+
+BOOST_KEYWORDS = [k.lower() for k in CONFIG.get("boost_keywords", [])]
+NG_KEYWORDS = [k.lower() for k in CONFIG.get("ng_keywords", [])]
+NG_SOURCES = [s.lower() for s in CONFIG.get("ng_sources", [])]
+BOOST_SOURCES = [s.lower() for s in CONFIG.get("boost_sources", [])]
+
 # 記事の合計上限
 MAX_ARTICLES = 5
 
@@ -209,9 +219,32 @@ def main():
         post_to_slack(f":newspaper: *PdM朝刊 - {today}*\n\n本日の新着記事はありませんでした。")
         return
 
-    # カテゴリ別に分類し、ソースが偏らないようシャッフル
+    # NGソース・NGキーワードでフィルタ
+    all_articles = [
+        a for a in all_articles
+        if a["source"].lower() not in NG_SOURCES
+        and not any(ng in a["title"].lower() for ng in NG_KEYWORDS)
+    ]
+
+    # スコアリング: boost_keywords/boost_sourcesにマッチしたら加点
+    def score(article):
+        s = 0
+        title_lower = article["title"].lower()
+        source_lower = article["source"].lower()
+        for kw in BOOST_KEYWORDS:
+            if kw in title_lower:
+                s += 2
+        if source_lower in BOOST_SOURCES:
+            s += 1
+        return s
+
+    for a in all_articles:
+        a["score"] = score(a)
+
+    # カテゴリ別に分類し、スコア順にソート
     import random
-    random.shuffle(all_articles)
+    random.shuffle(all_articles)  # 同スコア内でランダム性を持たせる
+    all_articles.sort(key=lambda a: a["score"], reverse=True)
 
     pdm_articles = [a for a in all_articles if a["category"] == "PdM全般"]
     ai_articles = [a for a in all_articles if a["category"] == "AI x PdM"]
