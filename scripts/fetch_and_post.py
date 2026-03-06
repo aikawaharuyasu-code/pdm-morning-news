@@ -1,4 +1,5 @@
 import json
+import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 import os
@@ -17,7 +18,7 @@ NG_SOURCES = [s.lower() for s in CONFIG.get("ng_sources", [])]
 BOOST_SOURCES = [s.lower() for s in CONFIG.get("boost_sources", [])]
 
 # 記事の合計上限
-MAX_ARTICLES = 10
+MAX_ARTICLES = 20
 
 # PdM / プロダクトマネジメント関連のRSSフィード
 RSS_FEEDS = [
@@ -217,7 +218,33 @@ def fetch_rss(feed):
     except Exception as e:
         print(f"[WARN] {feed['name']} の取得に失敗: {e}")
 
-    return articles[:3]  # 各フィードから最大3件
+    return articles[:5]  # 各フィードから最大5件
+
+
+def fetch_hatena_bookmarks(articles):
+    """はてなブックマーク数APIで各記事のブックマーク数を一括取得"""
+    if not articles:
+        return {}
+    bookmark_counts = {}
+    # APIは1回につき50URLまで対応
+    batch_size = 50
+    for i in range(0, len(articles), batch_size):
+        batch = articles[i : i + batch_size]
+        params = "&".join(
+            f"url={urllib.parse.quote(a['link'], safe='')}" for a in batch
+        )
+        api_url = f"https://bookmark.hatenaapis.com/count/entries?{params}"
+        try:
+            req = urllib.request.Request(
+                api_url,
+                headers={"User-Agent": "PDM-Morning-News-Bot/1.0"},
+            )
+            with urllib.request.urlopen(req, timeout=10) as response:
+                data = json.loads(response.read())
+                bookmark_counts.update(data)
+        except Exception as e:
+            print(f"[WARN] はてブ数の取得に失敗: {e}")
+    return bookmark_counts
 
 
 def post_to_slack(message):
@@ -252,7 +279,10 @@ def main():
         and not any(ng in a["title"].lower() for ng in NG_KEYWORDS)
     ]
 
-    # スコアリング: boost_keywords/boost_sourcesにマッチしたら加点
+    # はてブ数を取得して人気度を測定
+    bookmark_counts = fetch_hatena_bookmarks(all_articles)
+
+    # スコアリング: boost_keywords/boost_sources + はてブ数で加点
     def score(article):
         s = 0
         title_lower = article["title"].lower()
@@ -261,6 +291,19 @@ def main():
             if kw in title_lower:
                 s += 2
         if source_lower in BOOST_SOURCES:
+            s += 1
+        # はてブ数による加点
+        bookmarks = bookmark_counts.get(article["link"], 0)
+        article["bookmarks"] = bookmarks
+        if bookmarks >= 100:
+            s += 5
+        elif bookmarks >= 50:
+            s += 4
+        elif bookmarks >= 20:
+            s += 3
+        elif bookmarks >= 10:
+            s += 2
+        elif bookmarks >= 3:
             s += 1
         return s
 
@@ -275,25 +318,27 @@ def main():
     pdm_articles = [a for a in all_articles if a["category"] == "PdM全般"]
     ai_articles = [a for a in all_articles if a["category"] == "AI x PdM"]
 
-    # ソースの偏りを防ぐ: 同一ソースから最大1件
-    def dedupe_sources(articles):
-        seen_sources = set()
+    # ソースの偏りを防ぐ: 同一ソースから最大2件
+    def dedupe_sources(articles, max_per_source=2):
+        source_count = {}
         result = []
         for a in articles:
-            if a["source"] not in seen_sources:
-                seen_sources.add(a["source"])
+            count = source_count.get(a["source"], 0)
+            if count < max_per_source:
+                source_count[a["source"]] = count + 1
                 result.append(a)
         return result
 
     pdm_articles = dedupe_sources(pdm_articles)
     ai_articles = dedupe_sources(ai_articles)
 
-    # 合計10件に収める（PdM 5件 + AI 5件を目安に）
-    pdm_pick = pdm_articles[:5]
-    ai_pick = ai_articles[:5]
-    if len(pdm_pick) < 5:
+    # 合計20件に収める（PdM 10件 + AI 10件を目安に）
+    half = MAX_ARTICLES // 2
+    pdm_pick = pdm_articles[:half]
+    ai_pick = ai_articles[:half]
+    if len(pdm_pick) < half:
         ai_pick = ai_articles[: MAX_ARTICLES - len(pdm_pick)]
-    if len(ai_pick) < 5:
+    if len(ai_pick) < half:
         pdm_pick = pdm_articles[: MAX_ARTICLES - len(ai_pick)]
 
     lines = [f":newspaper: *PdM朝刊 - {today}*\n"]
