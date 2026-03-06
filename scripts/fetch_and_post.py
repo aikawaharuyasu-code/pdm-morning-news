@@ -20,22 +20,25 @@ BOOST_SOURCES = [s.lower() for s in CONFIG.get("boost_sources", [])]
 # 記事の合計上限
 MAX_ARTICLES = 20
 
+# note API経由で取得するフィード（いいね数によるスコアリング対応）
+NOTE_FEEDS = [
+    # --- PdM全般 ---
+    {"name": "note #プロダクトマネージャー", "tag": "プロダクトマネージャー", "category": "PdM全般"},
+    {"name": "note #プロダクトマネジメント", "tag": "プロダクトマネジメント", "category": "PdM全般"},
+    # --- AI x PdM ---
+    {"name": "note #ClaudeCode", "tag": "ClaudeCode", "category": "AI x PdM"},
+    {"name": "note #Claude", "tag": "Claude", "category": "AI x PdM"},
+    {"name": "note #AI業務効率化", "tag": "AI業務効率化", "category": "AI x PdM"},
+    {"name": "note #AI自動化", "tag": "AI自動化", "category": "AI x PdM"},
+    {"name": "note #生成AI活用", "tag": "生成AI活用", "category": "AI x PdM"},
+]
+
 # PdM / プロダクトマネジメント関連のRSSフィード
 RSS_FEEDS = [
     # --- PdM全般 ---
     {
         "name": "ProductZine",
         "url": "https://productzine.jp/feed/rss2",
-        "category": "PdM全般",
-    },
-    {
-        "name": "note #プロダクトマネージャー",
-        "url": "https://note.com/hashtag/%E3%83%97%E3%83%AD%E3%83%80%E3%82%AF%E3%83%88%E3%83%9E%E3%83%8D%E3%83%BC%E3%82%B8%E3%83%A3%E3%83%BC?f=new&rss",
-        "category": "PdM全般",
-    },
-    {
-        "name": "note #プロダクトマネジメント",
-        "url": "https://note.com/hashtag/%E3%83%97%E3%83%AD%E3%83%80%E3%82%AF%E3%83%88%E3%83%9E%E3%83%8D%E3%82%B8%E3%83%A1%E3%83%B3%E3%83%88?f=new&rss",
         "category": "PdM全般",
     },
     {
@@ -79,31 +82,6 @@ RSS_FEEDS = [
         "category": "PdM全般",
     },
     # --- AI x PdM / AI業務活用 ---
-    {
-        "name": "note #ClaudeCode",
-        "url": "https://note.com/hashtag/ClaudeCode?f=new&rss",
-        "category": "AI x PdM",
-    },
-    {
-        "name": "note #Claude",
-        "url": "https://note.com/hashtag/Claude?f=new&rss",
-        "category": "AI x PdM",
-    },
-    {
-        "name": "note #AI業務効率化",
-        "url": "https://note.com/hashtag/AI%E6%A5%AD%E5%8B%99%E5%8A%B9%E7%8E%87%E5%8C%96?f=new&rss",
-        "category": "AI x PdM",
-    },
-    {
-        "name": "note #AI自動化",
-        "url": "https://note.com/hashtag/AI%E8%87%AA%E5%8B%95%E5%8C%96?f=new&rss",
-        "category": "AI x PdM",
-    },
-    {
-        "name": "note #生成AI活用",
-        "url": "https://note.com/hashtag/%E7%94%9F%E6%88%90AI%E6%B4%BB%E7%94%A8?f=new&rss",
-        "category": "AI x PdM",
-    },
     {
         "name": "Zenn - Claude",
         "url": "https://zenn.dev/topics/claude/feed",
@@ -221,6 +199,48 @@ def fetch_rss(feed):
     return articles[:5]  # 各フィードから最大5件
 
 
+def fetch_note(feed):
+    """note APIからハッシュタグ記事を取得（いいね数つき）"""
+    articles = []
+    tag = urllib.parse.quote(feed["tag"])
+    api_url = f"https://note.com/api/v3/hashtags/{tag}/notes?size=10&sort=new"
+    try:
+        req = urllib.request.Request(
+            api_url,
+            headers={"User-Agent": "Mozilla/5.0"},
+        )
+        with urllib.request.urlopen(req, timeout=10) as response:
+            data = json.loads(response.read())
+
+        notes = data.get("data", {}).get("notes", [])
+        for n in notes:
+            title = n.get("name", "").strip()
+            user = n.get("user", {}).get("urlname", "")
+            key = n.get("key", "")
+            link = f"https://note.com/{user}/n/{key}"
+            like_count = n.get("like_count", 0) or 0
+
+            if not title or not key:
+                continue
+            if title in seen_titles:
+                continue
+
+            seen_titles.add(title)
+            articles.append(
+                {
+                    "title": title,
+                    "link": link,
+                    "source": feed["name"],
+                    "category": feed["category"],
+                    "note_likes": like_count,
+                }
+            )
+    except Exception as e:
+        print(f"[WARN] {feed['name']} の取得に失敗: {e}")
+
+    return articles[:5]
+
+
 def fetch_hatena_bookmarks(articles):
     """はてなブックマーク数APIで各記事のブックマーク数を一括取得"""
     if not articles:
@@ -264,6 +284,9 @@ def main():
     today = datetime.now().strftime("%Y/%m/%d")
 
     all_articles = []
+    for feed in NOTE_FEEDS:
+        articles = fetch_note(feed)
+        all_articles.extend(articles)
     for feed in RSS_FEEDS:
         articles = fetch_rss(feed)
         all_articles.extend(articles)
@@ -304,6 +327,18 @@ def main():
         elif bookmarks >= 10:
             s += 2
         elif bookmarks >= 3:
+            s += 1
+        # noteいいね数による加点
+        note_likes = article.get("note_likes", 0)
+        if note_likes >= 100:
+            s += 5
+        elif note_likes >= 50:
+            s += 4
+        elif note_likes >= 20:
+            s += 3
+        elif note_likes >= 10:
+            s += 2
+        elif note_likes >= 3:
             s += 1
         return s
 
