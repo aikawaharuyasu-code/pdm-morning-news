@@ -2,8 +2,8 @@ name: PdM朝刊 - 毎朝7時配信
 
 on:
   schedule:
-    # 日本時間 朝7:00 = UTC 22:00 (前日)
-    - cron: '0 22 * * *'
+    # 日本時間 朝7:00狙い。GitHub Actionsの遅延を考慮しUTC 21:00(JST 6:00)に設定
+    - cron: '0 21 * * *'
   workflow_dispatch: # 手動実行も可能
 
 jobs:
