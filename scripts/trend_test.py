@@ -10,7 +10,6 @@ from datetime import datetime
 
 SLACK_WEBHOOK_URL = os.environ["SLACK_WEBHOOK_URL"]
 
-# 設定
 BOOST_KEYWORDS = [
     "ai", "新サービス", "新商品", "launch", "startup",
     "d2c", "サブスク", "web3", "xr", "ウェルネス",
@@ -18,33 +17,31 @@ BOOST_KEYWORDS = [
     "z世代", "gen z", "tiktok", "viral",
 ]
 BOOST_SOURCES = ["product hunt", "lobsterr"]
-MAX_ARTICLES = 24
+MAX_ARTICLES = 5  # 厳選5件
 
 RSS_FEEDS = [
     # --- プロダクト / サービス ---
     {"name": "Product Hunt", "url": "https://www.producthunt.com/feed", "category": "プロダクト / サービス"},
     {"name": "TechCrunch", "url": "https://techcrunch.com/feed/", "category": "プロダクト / サービス"},
     {"name": "The Verge", "url": "https://www.theverge.com/rss/index.xml", "category": "プロダクト / サービス"},
-    {"name": "Springwise", "url": "https://www.springwise.com/feed/", "category": "プロダクト / サービス"},
-    {"name": "BRIDGE", "url": "https://thebridge.jp/feed", "category": "プロダクト / サービス"},
+    {"name": "Yanko Design", "url": "https://www.yankodesign.com/feed/", "category": "プロダクト / サービス"},
+    {"name": "IDEAS FOR GOOD", "url": "https://ideasforgood.jp/feed/", "category": "プロダクト / サービス"},
     # --- カルチャー / ライフスタイル ---
-    {"name": "WIRED Japan", "url": "https://wired.jp/feed/", "category": "カルチャー / ライフスタイル"},
     {"name": "TABI LABO", "url": "https://tabi-labo.com/feed", "category": "カルチャー / ライフスタイル"},
-    {"name": "Dezeen", "url": "https://www.dezeen.com/feed/", "category": "カルチャー / ライフスタイル"},
     {"name": "Hypebeast", "url": "https://hypebeast.com/feed", "category": "カルチャー / ライフスタイル"},
     {"name": "designboom", "url": "https://www.designboom.com/feed/", "category": "カルチャー / ライフスタイル"},
     {"name": "Cool Hunting", "url": "https://coolhunting.com/feed/", "category": "カルチャー / ライフスタイル"},
+    {"name": "CINRA", "url": "https://www.cinra.net/feed", "category": "カルチャー / ライフスタイル"},
     # --- lobsterr / 社会変化 / 傍流カルチャー ---
     {"name": "Lobsterr FM", "url": "https://anchor.fm/s/da77454/podcast/rss", "category": "カルチャー / ライフスタイル"},
     {"name": "Monocle", "url": "https://monocle.com/feed/", "category": "カルチャー / ライフスタイル"},
-    {"name": "It's Nice That", "url": "https://www.itsnicethat.com/rss/all", "category": "カルチャー / ライフスタイル"},
     {"name": "NOWNESS", "url": "https://www.nowness.com/rss", "category": "カルチャー / ライフスタイル"},
-    {"name": "Wallpaper*", "url": "https://www.wallpaper.com/feed", "category": "カルチャー / ライフスタイル"},
+    {"name": "Colossal", "url": "https://www.thisiscolossal.com/feed/", "category": "カルチャー / ライフスタイル"},
+    {"name": "Creative Boom", "url": "https://www.creativeboom.com/feed/", "category": "カルチャー / ライフスタイル"},
     {"name": "The Guardian - Culture", "url": "https://www.theguardian.com/culture/rss", "category": "カルチャー / ライフスタイル"},
     {"name": "Aeon", "url": "https://aeon.co/feed.rss", "category": "カルチャー / ライフスタイル"},
     # --- テック / イノベーション ---
     {"name": "MIT Technology Review", "url": "https://www.technologyreview.com/feed/", "category": "テック / イノベーション"},
-    {"name": "Fast Company", "url": "https://www.fastcompany.com/latest/rss", "category": "テック / イノベーション"},
     {"name": "Trend Hunter", "url": "https://www.trendhunter.com/rss", "category": "テック / イノベーション"},
     {"name": "AXIS", "url": "https://www.axismag.jp/feed", "category": "テック / イノベーション"},
 ]
@@ -145,7 +142,7 @@ def main():
     print(f"\n合計取得: {len(all_articles)}件")
 
     if not all_articles:
-        post_to_slack(f":earth_americas: *流行事象キャッチアップ - {today}*\n\n本日の新着トレンドはありませんでした。")
+        post_to_slack(f":earth_americas: *culturai朝刊 - {today}*\n\n本日の新着トレンドはありませんでした。")
         return
 
     # スコアリング
@@ -155,49 +152,28 @@ def main():
     random.shuffle(all_articles)
     all_articles.sort(key=lambda a: a["score"], reverse=True)
 
-    # カテゴリ別
-    categories = {}
+    # 同一ソース最大1件（5件に厳選するため偏り防止）
+    source_count = {}
+    picked = []
     for a in all_articles:
-        cat = a["category"]
-        if cat not in categories:
-            categories[cat] = []
-        categories[cat].append(a)
-
-    # 同一ソース最大2件
-    for cat in categories:
-        source_count = {}
-        filtered = []
-        for a in categories[cat]:
-            count = source_count.get(a["source"], 0)
-            if count < 2:
-                source_count[a["source"]] = count + 1
-                filtered.append(a)
-        categories[cat] = filtered[:6]
+        count = source_count.get(a["source"], 0)
+        if count < 1:
+            source_count[a["source"]] = count + 1
+            picked.append(a)
+        if len(picked) >= MAX_ARTICLES:
+            break
 
     # Slackメッセージ構築
-    cat_emoji = {
-        "プロダクト / サービス": ":rocket:",
-        "カルチャー / ライフスタイル": ":art:",
-        "テック / イノベーション": ":bulb:",
-    }
-    cat_order = ["プロダクト / サービス", "カルチャー / ライフスタイル", "テック / イノベーション"]
+    lines = [f":earth_americas: *culturai朝刊 - {today}*\n"]
+    lines.append("今日の注目トレンド :sparkles:\n")
 
-    lines = [f":earth_americas: *流行事象キャッチアップ - {today}*\n"]
-
-    for cat in cat_order:
-        articles = categories.get(cat, [])
-        if not articles:
-            continue
-        emoji = cat_emoji.get(cat, ":pushpin:")
-        lines.append(f"*{emoji} {cat}*")
-        for a in articles:
-            lines.append(f"  <{a['link']}|{a['title']}>\n  _{a['source']}_")
-        lines.append("")
+    for i, a in enumerate(picked, 1):
+        lines.append(f"*{i}.* <{a['link']}|{a['title']}>")
+        lines.append(f"    _{a['source']}_\n")
 
     lines.append("今日も良い一日を :coffee:")
 
-    total = sum(len(v) for v in categories.values())
-    print(f"投稿件数: {total}件")
+    print(f"投稿件数: {len(picked)}件")
 
     message = "\n".join(lines)
     post_to_slack(message)
