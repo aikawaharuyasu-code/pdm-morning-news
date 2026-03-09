@@ -34,6 +34,14 @@ RSS_FEEDS = [
     {"name": "Hypebeast", "url": "https://hypebeast.com/feed", "category": "カルチャー / ライフスタイル"},
     {"name": "designboom", "url": "https://www.designboom.com/feed/", "category": "カルチャー / ライフスタイル"},
     {"name": "Cool Hunting", "url": "https://coolhunting.com/feed/", "category": "カルチャー / ライフスタイル"},
+    # --- lobsterr / 社会変化 / 傍流カルチャー ---
+    {"name": "Lobsterr FM", "url": "https://anchor.fm/s/da77454/podcast/rss", "category": "カルチャー / ライフスタイル"},
+    {"name": "Monocle", "url": "https://monocle.com/feed/", "category": "カルチャー / ライフスタイル"},
+    {"name": "It's Nice That", "url": "https://www.itsnicethat.com/rss/all", "category": "カルチャー / ライフスタイル"},
+    {"name": "NOWNESS", "url": "https://www.nowness.com/rss", "category": "カルチャー / ライフスタイル"},
+    {"name": "Wallpaper*", "url": "https://www.wallpaper.com/feed", "category": "カルチャー / ライフスタイル"},
+    {"name": "The Guardian - Culture", "url": "https://www.theguardian.com/culture/rss", "category": "カルチャー / ライフスタイル"},
+    {"name": "Aeon", "url": "https://aeon.co/feed.rss", "category": "カルチャー / ライフスタイル"},
     # --- テック / イノベーション ---
     {"name": "MIT Technology Review", "url": "https://www.technologyreview.com/feed/", "category": "テック / イノベーション"},
     {"name": "Fast Company", "url": "https://www.fastcompany.com/latest/rss", "category": "テック / イノベーション"},
